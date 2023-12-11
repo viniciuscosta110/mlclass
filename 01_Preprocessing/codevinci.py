@@ -39,8 +39,8 @@ def treat_outliers_iqr(column):
     Q1 = column.quantile(0.25)
     Q3 = column.quantile(0.75)
     IQR = Q3 - Q1
-    lower_bound = Q1 - 1.5 * IQR
-    upper_bound = Q3 + 1.5 * IQR
+    lower_bound = Q1 - 1 * IQR
+    upper_bound = Q3 + 1 * IQR
     return (column >= lower_bound) & (column <= upper_bound)
 
 #columns_to_exclude = ['Outcome']
@@ -52,8 +52,9 @@ merge_tables.info()
 
 outcome_column = merge_tables['Outcome']
 
-merge_tables_normalized = merge_tables
-merge_tables_normalized = (merge_tables_normalized - merge_tables_normalized.min()) / (merge_tables_normalized.max() - merge_tables_normalized.min())
+merge_tables_normalized = merge_tables.drop(columns=['Outcome'])
+merge_tables_normalized = (merge_tables_normalized - merge_tables_normalized.mean()) / merge_tables_normalized.std()
+merge_tables_normalized.insert(len(merge_tables_normalized.columns), 'Outcome', outcome_column)
 
 merge_tables_normalized.info()
 merge_tables_normalized.to_csv("diabetes_dataset_normalized.csv", index=False)
