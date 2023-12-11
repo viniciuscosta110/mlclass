@@ -43,8 +43,8 @@ def treat_outliers_iqr(column):
     upper_bound = Q3 + 1.5 * IQR
     return (column >= lower_bound) & (column <= upper_bound)
 
-columns_to_exclude = ['Outcome']
-for column in merge_tables.columns:
+#columns_to_exclude = ['Outcome']
+#for column in merge_tables.columns:
     if column not in columns_to_exclude:
         merge_tables = merge_tables[treat_outliers_iqr(merge_tables[column])]
 
