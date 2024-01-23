@@ -32,9 +32,17 @@ def preprocess_data(df):
     scaler = StandardScaler()
     df[numerical_cols] = scaler.fit_transform(df[numerical_cols])
 
-    # Generate new rows with noise
-    new_rows = df.sample(n=200, replace=True, random_state=42)
-    new_rows[numerical_cols] += np.random.normal(-0.01, 0.01, size=new_rows[numerical_cols].shape)
+    # Generate new rows mean with noise
+    new_rows = df.sample(frac=0.1, random_state=42, weights=abs(df['sex_I']))
+    new_rows_2 = df.sample(frac=0.1, random_state=42, weights=abs(df['height']))
+
+    new_rows = pd.concat([new_rows, new_rows_2])
+
+    # Get average values of numerical columns
+    average_values = df[numerical_cols].mean()
+    unitRandomValues = np.random.uniform(low=-0.1, high=0.1, size=new_rows[numerical_cols].shape)
+
+    new_rows[numerical_cols] +=  unitRandomValues
     df = pd.concat([df, new_rows])
 
     return df
@@ -75,7 +83,7 @@ def train_svc_after_forest(X_train, y_train, outliers):
     y_train_cleaned = y_train
 
     # Train SVM classifier
-    svm_classifier = SVC(random_state=90, kernel='rbf', C=100, gamma='auto')
+    svm_classifier = SVC(random_state=42, kernel='rbf', C=100, gamma='auto', probability=True, break_ties=True, class_weight='balanced')
     svm_classifier.fit(X_train_cleaned, y_train_cleaned)
     return svm_classifier
 
@@ -92,29 +100,30 @@ def train_rf_classifier(X_train, y_train, outliers):
 
 # Load data
 df = load_data()
-print(df.head())
 
 # Preprocess data
-df = preprocess_data(df)
+preProcess_df = preprocess_data(df)
 
 # Separate features and target variable
-X = df.drop('type', axis=1)
-y = df['type']
+X = preProcess_df.drop('type', axis=1)
+y = preProcess_df['type']
 
 # Split data
 X_train, X_test, y_train, y_test = split_data(X, y)
 
 isolation_forest, outliers = train_isolation_forest(X_train)
 svm_classifier = train_svc_after_forest(X_train, y_train, outliers)
+"""
 knn_classifier = train_knn_after_forest(X_train, y_train, outliers)
 rf_classifier = train_rf_classifier(X_train, y_train, outliers)
+"""
 
 # Train SVM classifier
 svm_scores = cross_val_score(svm_classifier, X_train, y_train, cv=10)
-svm_accuracy = accuracy_score(y_train, svm_classifier.predict(X_train))
+svm_accuracy = accuracy_score(y_test, svm_classifier.predict(X_test))
 svm_best_accuracy = max(svm_scores)
 
-# Train KNN classifier
+""" # Train KNN classifier
 knn_scores = cross_val_score(knn_classifier, X_train, y_train, cv=10)
 knn_accuracy = accuracy_score(y_train, knn_classifier.predict(X_train))
 knn_best_accuracy = max(knn_scores)
@@ -122,16 +131,24 @@ knn_best_accuracy = max(knn_scores)
 # Train Random Forest classifier
 rf_scores = cross_val_score(rf_classifier, X_train, y_train, cv=10)
 rf_accuracy = accuracy_score(y_train, rf_classifier.predict(X_train))
-rf_best_accuracy = max(rf_scores)
+rf_best_accuracy = max(rf_scores) """
 
 # Find the best model
-best_model = max([(svm_best_accuracy, svm_classifier), (knn_best_accuracy, knn_classifier), (rf_best_accuracy, rf_classifier)])
-best_accuracy, best_classifier = best_model
+models = [
+    ('SVM', svm_best_accuracy, svm_classifier),
+"""     ('KNN', knn_best_accuracy, knn_classifier), """
+"""     ('RandomForest', rf_best_accuracy, rf_classifier) """
+]
 
-print(f"Best model: {best_classifier} with accuracy: {best_accuracy}")
+best_model = max(models, key=lambda x: x[0])
+best_classifier_name, best_accuracy, best_classifier = best_model
 
- # Enviando previsões realizadas com o modelo para o servidor
+evaluate_model(best_classifier, X_test, y_test)
+""" print(f"Best model: {best_classifier} with accuracy: {best_accuracy}") """
+ 
+  # Enviando previsões realizadas com o modelo para o servidor
 URL = "https://aydanomachado.com/mlclass/03_Validation.php"
+
 
 #TODO Substituir pela sua chave aqui
 DEV_KEY = "Codevinci"
