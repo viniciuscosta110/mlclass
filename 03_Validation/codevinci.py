@@ -1,14 +1,17 @@
-import pandas as pd
+from matplotlib import pyplot as plt
 import requests
+import pandas as pd
 import numpy as np
 
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from sklearn.ensemble import IsolationForest, RandomForestClassifier
 from sklearn.model_selection import cross_val_score
 from sklearn.preprocessing import StandardScaler
+
+import seaborn as sns
 
 numerical_cols = [
     'length', 'diameter', 'height', 
@@ -23,7 +26,7 @@ def load_data(file_path='abalone_dataset.csv'):
 def preprocess_data(df):
     df['height_times_shell_weight'] = (df['height'] * df['shell_weight'])
     df['length_plus_shell_weight'] = df['length'] + df['shell_weight']
-    df['diameter_times_shell_weight'] = df['diameter'] + df['shell_weight']    
+    df['diameter_times_shell_weight'] = df['diameter'] + df['shell_weight']
 
     # Use OneHotEncoder for categorical columns
     df = pd.get_dummies(df, columns=['sex'], prefix=['sex'])
@@ -33,10 +36,7 @@ def preprocess_data(df):
     df[numerical_cols] = scaler.fit_transform(df[numerical_cols])
 
     # Generate new rows mean with noise
-    new_rows = df.sample(frac=0.1, random_state=42, weights=abs(df['sex_I']))
-    new_rows_2 = df.sample(frac=0.1, random_state=42, weights=abs(df['height']))
-
-    new_rows = pd.concat([new_rows, new_rows_2])
+    new_rows = df.sample(frac=0.1, random_state=42, weights=(df['sex_I']))
 
     # Get average values of numerical columns
     average_values = df[numerical_cols].mean()
@@ -143,9 +143,20 @@ models = [
 best_model = max(models, key=lambda x: x[0])
 best_classifier_name, best_accuracy, best_classifier = best_model
 
-evaluate_model(best_classifier, X_test, y_test)
+
+y_pred = evaluate_model(best_classifier, X_test, y_test)
+cm = confusion_matrix(y_test, y_pred)
+classification_report = classification_report(y_test, y_pred)
+print(classification_report)
+""" # Plot the confusion matrix
+plt.figure(figsize=(8, 6))
+sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=best_classifier.classes_, yticklabels=best_classifier.classes_)
+plt.title("Confusion Matrix")
+plt.xlabel("Predicted")
+plt.ylabel("True")
+plt.show() """
 """ print(f"Best model: {best_classifier} with accuracy: {best_accuracy}") """
- 
+  
   # Enviando previsões realizadas com o modelo para o servidor
 URL = "https://aydanomachado.com/mlclass/03_Validation.php"
 
@@ -166,4 +177,4 @@ r = requests.post(url = URL, data = data)
 
 # Extraindo e imprimindo o texto da resposta
 pastebin_url = r.text
-print(" - Resposta do servidor:\n", r.text, "\n")
+print(" - Resposta do servidor:\n", r.text, "\n") 
