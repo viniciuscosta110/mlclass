@@ -64,6 +64,6 @@ df['KMeans_Cluster'] = identified_clusters
 
 # Analyze the clusters' characteristics
 for cluster_label in np.unique(identified_clusters):
-    cluster_data = X_norm[df['KMeans_Cluster'] == cluster_label]
+    cluster_data = X[df['KMeans_Cluster'] == cluster_label]
     print("Cluster", cluster_label)
     print(cluster_data.describe())
